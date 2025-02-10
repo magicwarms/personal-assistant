@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Vision Chat App</title>
+    <style>
+        .chat-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .message-input {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        #chat-history {
+            height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .message {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .user-message {
+            background-color: #e3f2fd;
+        }
+
+        .bot-message {
+            background-color: #f5f5f5;
+        }
+
+        .error {
+            color: red;
+            margin: 10px 0;
+        }
+
+        .typing {
+            opacity: 0.5;
+        }
+
+        .status {
+            margin-top: 10px;
+            font-style: italic;
+            color: #666;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .controls {
+            margin: 20px 0;
+        }
+
+        #status {
+            margin: 10px 0;
+            color: #666;
+        }
+
+        button {
+            padding: 8px 16px;
+            margin-right: 10px;
+        }
+
+        #audioPlayer {
+            width: 100%;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="chat-container">
+        <div id="chat-history"></div>
+        <div id="error-message" class="error"></div>
+        <div class="status" id="status">Status: Ready</div>
+        <button id="start-button">START SPEAK</button>
+        <button id="stop-button" disabled>STOP SPEAK</button>
+
+        <audio id="audioPlayer" preload="auto" controls></audio>
+    </div>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"
+        integrity="sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+"
+        crossorigin="anonymous"></script>
+    <script>
+        const socket = io("http://localhost:3000");
+
+        const startButton = document.getElementById('start-button');
+        const stopButton = document.getElementById('stop-button');
+        const status = document.getElementById('status');
+        const audioPlayer = document.getElementById('audioPlayer');
+
+        const recognitionSvc = window?.SpeechRecognition || window?.webkitSpeechRecognition;
+        let recognition;
+        try {
+            recognition = new recognitionSvc();
+            recognition.lang = 'id-ID';
+            recognition.continuous = false;
+        } catch (error) {
+            document.getElementById('transcription').innerHTML = `<p>This browser does not support speech recognition API. Please, use another one (Google Chrome recommended)</p>`;
+        }
+
+        recognition.onstart = () => {
+            status.textContent = 'Status: Listening...';
+            startButton.disabled = true;
+            stopButton.disabled = false;
+        };
+
+        recognition.onresult = (event) => {
+            let finalTranscript = '';
+
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                const transcript = event.results[i][0].transcript;
+                if (event.results[i].isFinal) {
+                    finalTranscript += transcript + ' ';
+                }
+            }
+
+            console.log(`You said: ${finalTranscript}`);
+            sendMessage(finalTranscript);
+        };
+
+        startButton.addEventListener('click', (e) => {
+            // e.preventDefault(); // Prevent default behavior
+            recognition.start();
+        });
+
+        socket.on("generateResponse", (response) => {
+            const responsePlaceholder = document.querySelector('.bot-message.typing');
+            if (responsePlaceholder) {
+                responsePlaceholder.textContent = response;
+                responsePlaceholder.classList.remove('typing');
+            }
+        });
+
+        // socket.on("audioReady", async (isGenerated) => {
+        //     // Load and play audio
+        //     if (isGenerated) await loadAudio();
+        // })
+
+        window.addEventListener('error', (event) => {
+            console.error('Global Error:', event.error);
+        });
+
+        // async function loadAudio() {
+        //     try {
+        //         status.textContent = 'Status: Loading audio...';
+        //         audioPlayer.src = `http://localhost:3000/myAudio.mp3`;
+        //         await audioPlayer.play().catch(error => {
+        //             console.error('Audio play error:', error);
+        //             alert('Audio could not be played due to autoplay restrictions. Click the play button manually.');
+        //         });
+
+        //     } catch (error) {
+        //         console.error('Error loading audio:', error);
+        //         status.textContent = 'Status: Error loading audio';
+        //     }
+        // }
+
+
+        async function sendMessage(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = '';
+
+            // Add user message to chat
+            appendMessage('user', message);
+            // Create response message placeholder
+            const responsePlaceholder = appendMessage('bot', '...', true);
+            try {
+
+                socket.emit("submitMessage", message);
+
+                status.textContent = 'Status: Idle';
+                startButton.disabled = false;
+                stopButton.disabled = true;
+            } catch (error) {
+                console.error('Error:', error);
+                errorDiv.textContent = `Error: ${error.message}`;
+                responsePlaceholder.textContent = 'Sorry, there was an error processing your request.';
+                responsePlaceholder.classList.remove('typing');
+            }
+        }
+
+        function appendMessage(sender, content, isTyping = false) {
+            const chatHistory = document.getElementById('chat-history');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}-message${isTyping ? ' typing' : ''}`;
+            messageDiv.textContent = content + "\n";
+            chatHistory.appendChild(messageDiv);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+            return messageDiv;
+        }
+
+        function speak(text) {
+            // Create a SpeechSynthesisUtterance
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'id-ID'; // Bahasa Indonesia
+            // Speak the text
+            speechSynthesis.speak(utterance);
+        }
+    </script>
+</body>
+
+</html>
