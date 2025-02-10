@@ -20,7 +20,10 @@ const agentConfig = {
     knowledge: [], // Vector store/RAG would go here
     tools: {
         // web_search: (query: string) => { return query },
-        weather: <Type>(arg: Type): Type => { return arg },
+        weather: (location: string): string => {
+            console.log({ locationLAGIAKSES: location })
+            return location ?? `The current weather in ${location} is sunny with a high of 22°C.`
+        },
         // calculator: <Type>(arg: Type): Type => { return arg },
     }
 };
@@ -29,33 +32,26 @@ const generatePlanner = async (userInput: string) => {
     try {
         const messages = [{
             role: 'system',
-            content: prompts.systemPrompt(agentConfig.memory, agentConfig.knowledge)
+            content: prompts.systemPrompt(agentConfig.memory, agentConfig.knowledge, userInput)
         }, {
             role: 'user',
             content: userInput
         }];
-
-        console.log({ userInput, messages });
-
+        console.log({ messages });
         const response = await ollama.chat({
             model: CONFIG.MODEL_NAME,
             format: 'json',
             messages,
         })
         const agentAction: AgentAction = JSON.parse(response.message.content);
-
+        console.log({ agentAction });
         if (agentAction.action && agentAction.params) {
             const toolResult = agentConfig.tools[agentAction.action](agentAction.params);
-            console.log({ toolResult });
-            agentConfig.memory.push({ user: userInput, result: toolResult });
-
-            console.log({ memoriesAgentTool: agentConfig.memory });
+            agentConfig.memory.push({ user: userInput, result: agentAction.response });
             return toolResult;
         }
 
         agentConfig.memory.push({ user: userInput, result: agentAction.response });
-
-        console.log({ memoriesAgent: agentConfig.memory });
 
         return agentAction.response;
     } catch (error: any) {
