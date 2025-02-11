@@ -1,3 +1,5 @@
+import 'dotenv/config'
+
 import express, { RequestHandler } from 'express';
 import { CONFIG } from './config';
 import OllamaService from './services/ollamaService';
