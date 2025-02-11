@@ -1,17 +1,18 @@
 import { Pinecone } from '@pinecone-database/pinecone';
 import { CONFIG } from '../config';
 import getEmbedding from './embeddingService';
+import crypto from 'crypto'
 
 const pinecone = new Pinecone({ apiKey: CONFIG.PINECONE_API_KEY! });
 const index = pinecone.Index('knowledge-base');
 
-const inputKnowledge = async (userQuery: string) => {
+const inputKnowledge = async (userQuery: string, thought: string) => {
     const queryEmbedding = await getEmbedding(userQuery);
     await index.upsert([
         {
-            id: "fact" + Date.now().toString(),
+            id: crypto.randomUUID(),
             values: queryEmbedding,
-            metadata: { text: 'User loves coffee' }
+            metadata: { text: thought }
         }
     ]);
 
