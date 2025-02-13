@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --glow-color: #00FF94;
+  --background: #000000;
+  --text: #FFFFFF;
+}
+
+body {
+  margin: 0;
+  font-family: 'Neue Montreal', system-ui, -apple-system, sans-serif;
+  background-color: var(--background);
+  color: var(--text);
+}
+
+.voice-orb {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  margin: 0 auto;
+}
+
+.voice-orb::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, 
+    rgba(0, 255, 148, 0.2) 0%,
+    rgba(0, 255, 148, 0.1) 40%,
+    rgba(0, 255, 148, 0) 70%
+  );
+  filter: blur(20px);
+  animation: glow 3s ease-in-out infinite;
+}
+
+.voice-ring {
+  position: absolute;
+  inset: 30px;
+  border: 2px solid var(--glow-color);
+  border-radius: 50%;
+  filter: blur(1px);
+  opacity: 0.5;
+  animation: rotate 4s linear infinite;
+}
+
+.voice-ring-2 {
+  animation-delay: -2s;
+  animation-duration: 5s;
+}
+
+.voice-ring-3 {
+  animation-delay: -1s;
+  animation-duration: 6s;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg) scale(0.9);
+  }
+  to {
+    transform: rotate(360deg) scale(1.1);
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+.glass-effect {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
