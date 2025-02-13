@@ -22,27 +22,27 @@ ${memories.slice(-3).map(m => `[${m.timestamp}] ${m.type}: ${m.content}`).join('
 {
   "reminder_set": {
     "description": "Set temporal reminders",
-    "params": {"message": string}
+    "params": {"parameters": string}
   },
   "web_search": {
     "description": "Access real-time information",
-    "params": {"query": string}
+    "params": {"parameters": string}
   },
   "sentiment_analyzer": {
     "description": "Detect user emotional state",
-    "params": {"text": "latest user message"}
+    "params": {"parameters": "latest user message"}
   },
   "knowledge_update": {
     "description": "Store new personal preferences/facts",
-    "params": {"category": string, "details": string}
+    "params": {"parameters": string, "details": string}
   },
   "calendar_check": {
     "description": "Interface with digital calendar",
-    "params": {"time_range": "day|week|month"}
+    "params": {"parameters": "day|week|month"}
   },
   "communication": {
     "description": "Send emails/SMS",
-    "params": {"recipient": string, "message": string}
+    "params": {"parameters": string, "details": string}
   }
 }
 

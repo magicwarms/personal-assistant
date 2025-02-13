@@ -54,17 +54,6 @@ const agentConfig = {
     memory: [] as MemoryEntry[], // Conversation history
     knowledge: [] as UserKnowledge[], // Vector store/RAG would go here
     tools: {
-        // web_search: (query: string) => { return query },
-        weather: (location: AgentActionDetail): string => {
-            console.log({ locationLAGIAKSES: location })
-            return location.parameters ?? `The current weather in ${location} is sunny with a high of 22°C.`
-        },
-        knowledge_input: (knowledge: AgentActionDetail) => {
-            console.log({ knowledgeLAGIAKSES: knowledge })
-
-            // agentConfig.knowledge.push(knowledge);
-            return knowledge.parameters
-        },
         reminder_set: (message: AgentActionDetail) => {
             // "description": "Set temporal reminders",
             // "params: { "datetime": "ISO8601", "message": string }
@@ -78,12 +67,31 @@ const agentConfig = {
         sentiment_analyzer: (text: AgentActionDetail) => {
             // "description": "Detect user emotional state",
             // "params: { "text": "latest user message" }
+
+            console.log({ sentiment_analyzer: text })
+
             return { text: text.parameters }
         },
         knowledge_update: (params: AgentActionDetail) => {
             // "description": "Store new personal preferences/facts",
             // "params: { "category": string, "details": string }
-            return { category: params.parameters, details: params.details }
+            // agentConfig.knowledge.push({
+            //     category: params.parameters,
+            //     details: params.details!,
+            //     source: 'user',
+            //     lastUpdated: dateToIsoString()
+            // })
+
+            const userFacts: UserKnowledge = {
+                category: params.parameters,
+                details: params.details!,
+                source: 'user',
+                lastUpdated: dateToIsoString()
+            }
+
+            pineconeService.inputKnowledge(userFacts);
+
+            return userFacts
         },
         calendar_check: (timeRange: AgentActionDetail) => {
             // "description": "Interface with digital calendar",
@@ -102,8 +110,8 @@ const generatePlanner = async (userInput: string) => {
     try {
 
         // Retrieve relevant knowledge
-        // const knowledge = await pineconeService.retrieveKnowledge(userInput);
-
+        const knowledges = await pineconeService.retrieveKnowledge(userInput);
+        console.log({ knowledges });
         const messages = [{
             role: 'system',
             content: prompts.systemPrompt(agentConfig.memory, agentConfig.knowledge, userInput)
@@ -117,26 +125,26 @@ const generatePlanner = async (userInput: string) => {
             model: CONFIG.MODEL_NAME!,
             format: 'json',
             messages,
-            keep_alive: '1.5h',
         })
-        console.log({ response });
         const agentAction: AgentAction = JSON.parse(response.message.content);
         console.log({ agentAction });
-        console.log({ actionWAK: agentAction.actions });
-        if (agentAction.actions && agentAction.params) {
-            // const toolResult = agentConfig.tools[agentAction.actions[0].tool](agentAction.params);
-            const toolResult = (agentConfig.tools as { [key: string]: (params: AgentActionDetail) => any })[agentAction.actions[0].tool](agentAction.params);
+        console.log({ actionWAK: JSON.stringify(agentAction.actions) });
+        if (agentAction.actions && agentAction.actions.length && agentAction.actions[0].tool) {
+            const toolResult = (agentConfig.tools as { [key: string]: (params: AgentActionDetail) => any })[agentAction.actions[0].tool](agentAction.actions[0].params as AgentActionDetail);
 
-            agentConfig.memory.push({ timestamp: new Date().toISOString(), type: "system", content: agentAction.response.main, });
+            console.log({ toolResult });
 
-            return toolResult;
+            agentConfig.memory.push({ timestamp: dateToIsoString(), type: "system", content: agentAction.response.main });
+
+            return agentAction.response.main;
         }
 
-        agentConfig.memory.push({ timestamp: dateToIsoString(), type: "system", content: agentAction.response.main, });
+        agentConfig.memory.push({ timestamp: dateToIsoString(), type: "system", content: agentAction.response.main });
 
         return agentAction.response.main;
     } catch (error: any) {
-        throw new Error(`Failed to generate response: ${error.message}`);
+        console.error(`Failed to generate response: ${error.message}`);
+        return "Sorry, there was an error processing your request.";
     }
 }
 

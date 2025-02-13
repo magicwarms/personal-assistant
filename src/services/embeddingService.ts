@@ -1,5 +1,7 @@
 // import { pipeline } from '@xenova/transformers';
 
+import { UserKnowledge } from "./ollamaService";
+
 const getEmbedding = async (text: string): Promise<any[]> => {
     const TransformersApi = Function('return import("@xenova/transformers")')();
     const { pipeline } = await TransformersApi;

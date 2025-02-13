@@ -2,17 +2,19 @@ import { Pinecone } from '@pinecone-database/pinecone';
 import { CONFIG } from '../config';
 import getEmbedding from './embeddingService';
 import crypto from 'crypto'
+import { UserKnowledge } from './ollamaService';
 
 const pinecone = new Pinecone({ apiKey: CONFIG.PINECONE_API_KEY! });
 const index = pinecone.Index('knowledge-base');
 
-const inputKnowledge = async (userQuery: string, thought: string) => {
-    const queryEmbedding = await getEmbedding(userQuery);
+const inputKnowledge = async (params: UserKnowledge) => {
+    const queryEmbedding = await getEmbedding(params.category);
+    console.log({ queryEmbedding });
     await index.upsert([
         {
             id: crypto.randomUUID(),
             values: queryEmbedding,
-            metadata: { text: thought }
+            metadata: params
         }
     ]);
 
